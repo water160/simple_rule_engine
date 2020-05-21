@@ -181,6 +181,22 @@ class RuleParser(object):
         return ret
 
 
+def register_var(tiling_var, val):
+    """ set vars to globals(), only effective in one file
+    """
+    globals()[tiling_var] = val
+
+
+def get_variable_name(variable):
+    """ get variable dynamicly
+    call: get_variable_name(list['list_0']).pop()
+    output: list_0
+    """
+    callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+    ans = [var_name for var_name, var_val in callers_local_vars if var_val is variable]
+    return ans
+
+
 def dynamic_loop(loop_list, cur_loop, loop_tmp, loop_result):
     """ dynamic loop of `loop_list`
     dynamic_loop(loop_list, 0, [], [])
@@ -205,27 +221,35 @@ def get_loop_vars(rule):
         one_rule = traverse_list.pop()
         operator = one_rule[0]
         operate_nums = one_rule[1:]
+        # print("operate_nums: %s" % operate_nums)
         for operate_num in operate_nums:
             if isinstance(operate_num, str):
                 loop_vars.append(operate_num)
             elif isinstance(operate_num, list):
-                traverse_list.appedn(operate_num)
+                traverse_list.append(operate_num)
             else:
-                raise RuntimeError()
+                continue
+    # remove redundant vars, and keep the order
+    ans_vars = list(set(loop_vars))
+    ans_vars.sort(key = loop_vars.index)
+    return ans_vars
 
 
 def tiling_loop_with_rule(loop_list, rule):
-    loop_name_list = get_loop_vars(rule)
+    loop_vars = get_loop_vars(rule)
+    loop_result = dynamic_loop(loop_list, 0, [], [])
+    print("loop_vars: %s" % loop_vars)
+    print("loop_result: %s" % loop_result)
+    # if rule is add to loop_list
 
-def register_var(tiling_var, val):
-    # print(globals())
-    globals()[tiling_var] = val
 
 
-if __name__ == "__main__":
-    with open("rules.json", 'r') as json_fp:
-        rule_dict = json.load(json_fp)
 
+
+"""
+Test Functions
+"""
+def test_rule_with_str_desc(rule_dict):
     rule = rule_dict['rule_0']
     for x in range(1, 5):
         for y in range(1, 5):
@@ -241,3 +265,20 @@ if __name__ == "__main__":
                 if ret:
                     print("======")
                     print("Ho = %s, Wo = %s, Xo = %s, ret = %s" % (x, y, z, ret))
+
+
+def test_dynamic_loop_with_rule(rule_dict):
+    rule = rule_dict['rule_0']
+    loop_list = [
+        [1,2,3,4,5],
+        [1,2,3,4,5]
+    ]
+    tiling_loop_with_rule(loop_list, rule)
+
+
+if __name__ == "__main__":
+    with open("rules.json", 'r') as json_fp:
+        rule_dict = json.load(json_fp)
+
+    # test_rule_with_str_desc(rule_dict)
+    test_dynamic_loop_with_rule(rule_dict)
