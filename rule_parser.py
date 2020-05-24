@@ -1,7 +1,5 @@
 import json
-import math
-import inspect
-# from rule_parser import RuleParser
+from collections import OrderedDict
 
 
 class Functions(object):
@@ -25,89 +23,39 @@ class Functions(object):
         '/': 'divide'
     }
 
-    def eq(self, *args):
-        if isinstance(args[0], str) and isinstance(args[1], str):
-            return globals()[args[0]] == globals()[args[1]]
-        elif isinstance(args[0], str) and isinstance(args[1], (int, float)):
-            return globals()[args[0]] == args[1]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], str):
-            return args[0] == globals()[args[1]]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], (int, float)):
-            return args[0] == args[1]
+    def rule_var_to_value(self, arg):
+        ans = None
+        if isinstance(arg, str):
+            ans = globals()[arg]
+        elif isinstance(arg, (int, float, list)):
+            ans = arg
         else:
-            raise RuntimeError("%s and %s have wrong type, not `int`/`float`/`str`"\
-                % (args[0], args[1]))
+            raise RuntimeError("arg is not `str`/`int`/`float`/`list`")
+        return ans
+
+    def eq(self, *args):
+        return self.rule_var_to_value(args[0]) == self.rule_var_to_value(args[1])
 
     def neq(self, *args):
-        if isinstance(args[0], str) and isinstance(args[1], str):
-            return globals()[args[0]] != globals()[args[1]]
-        elif isinstance(args[0], str) and isinstance(args[1], (int, float)):
-            return globals()[args[0]] != args[1]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], str):
-            return args[0] != globals()[args[1]]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], (int, float)):
-            return args[0] != args[1]
-        else:
-            raise RuntimeError("%s and %s have wrong type, not `int`/`float`/`str`"\
-                % (args[0], args[1]))
+        return self.rule_var_to_value(args[0]) != self.rule_var_to_value(args[1])
 
     def gt(self, *args):
-        if isinstance(args[0], str) and isinstance(args[1], str):
-            return globals()[args[0]] > globals()[args[1]]
-        elif isinstance(args[0], str) and isinstance(args[1], (int, float)):
-            return globals()[args[0]] > args[1]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], str):
-            return args[0] > globals()[args[1]]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], (int, float)):
-            return args[0] > args[1]
-        else:
-            raise RuntimeError("%s and %s have wrong type, not `int`/`float`/`str`"\
-                % (args[0], args[1]))
+        return self.rule_var_to_value(args[0]) > self.rule_var_to_value(args[1])
 
     def gte(self, *args):
-        if isinstance(args[0], str) and isinstance(args[1], str):
-            return globals()[args[0]] >= globals()[args[1]]
-        elif isinstance(args[0], str) and isinstance(args[1], (int, float)):
-            return globals()[args[0]] >= args[1]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], str):
-            return args[0] >= globals()[args[1]]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], (int, float)):
-            return args[0] >= args[1]
-        else:
-            raise RuntimeError("%s and %s have wrong type, not `int`/`float`/`str`"\
-                % (args[0], args[1]))
+        return self.rule_var_to_value(args[0]) >= self.rule_var_to_value(args[1])
 
     def lt(self, *args):
-        if isinstance(args[0], str) and isinstance(args[1], str):
-            return globals()[args[0]] < globals()[args[1]]
-        elif isinstance(args[0], str) and isinstance(args[1], (int, float)):
-            return globals()[args[0]] < args[1]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], str):
-            return args[0] < globals()[args[1]]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], (int, float)):
-            return args[0] < args[1]
-        else:
-            raise RuntimeError("%s and %s have wrong type, not `int`/`float`/`str`"\
-                % (args[0], args[1]))
+        return self.rule_var_to_value(args[0]) < self.rule_var_to_value(args[1])
 
     def lte(self, *args):
-        if isinstance(args[0], str) and isinstance(args[1], str):
-            return globals()[args[0]] <= globals()[args[1]]
-        elif isinstance(args[0], str) and isinstance(args[1], (int, float)):
-            return globals()[args[0]] <= args[1]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], str):
-            return args[0] <= globals()[args[1]]
-        elif isinstance(args[0], (int, float)) and isinstance(args[1], (int, float)):
-            return args[0] <= args[1]
-        else:
-            raise RuntimeError("%s and %s have wrong type, not `int`/`float`/`str`"\
-                % (args[0], args[1]))
+        return self.rule_var_to_value(args[0]) <= self.rule_var_to_value(args[1])
 
     def in_(self, *args):
-        return args[0] in args[1:]
+        return self.rule_var_to_value(args[0]) in self.rule_var_to_value(args[1:])
 
     def not_(self, *args):
-        return not args[0]
+        return not self.rule_var_to_value(args[0])
 
     def or_(self, *args):
         return any(args)
@@ -116,31 +64,37 @@ class Functions(object):
         return all(args)
 
     def int_(self, *args):
-        return int(args[0])
+        return int(self.rule_var_to_value(args[0]))
 
     def str_(self, *args):
-        return unicode(args[0])
-
-    def upper(self, *args):
-        return args[0].upper()
-
-    def lower(self, *args):
-        return args[0].lower()
+        return str(self.rule_var_to_value(args[0]))
 
     def plus(self, *args):
-        return sum(args)
+        sum_plus = 0
+        for arg in args:
+            sum_plus += self.rule_var_to_value(arg)
+        return sum_plus
 
     def minus(self, *args):
-        return args[0] - args[1]
+        return self.rule_var_to_value(args[0]) - self.rule_var_to_value(args[1])
 
     def multiply(self, *args):
-        return args[0] * args[1]
+        sum_multiply = 1
+        for arg in args:
+            sum_multiply *= self.rule_var_to_value(arg)
+        return sum_multiply
 
     def divide(self, *args):
-        return float(args[0]) / float(args[1])
+        return self.rule_var_to_value(args[0]) / self.rule_var_to_value(args[1])
 
     def abs(self, *args):
-        return abs(args[0])
+        return abs(self.rule_var_to_value(args[0]))
+
+    def upper(self, *args):
+        return self.rule_var_to_value(args[0]).upper()
+
+    def lower(self, *args):
+        return self.rule_var_to_value(args[0]).lower()
 
 
 class RuleParser(object):
@@ -197,17 +151,17 @@ def get_variable_name(variable):
     return ans
 
 
-def dynamic_loop(loop_list, cur_loop, loop_tmp, loop_result):
-    """ dynamic loop of `loop_list`
-    dynamic_loop(loop_list, 0, [], [])
+def dynamic_loop(loop_dict, cur_loop, loop_tmp, loop_result):
+    """ dynamic loop of `loop_dict`
+    dynamic_loop(loop_dict, 0, [], [])
     """
-    max_loop_num = len(loop_list) - 1
-    for num in loop_list[cur_loop]:
+    max_loop_num = len(loop_dict) - 1
+    for num in list(loop_dict.values())[cur_loop]:
         loop_tmp.append(num)
         if cur_loop == max_loop_num:
             loop_result.append([*loop_tmp])
         else:
-            dynamic_loop(loop_list, cur_loop+1, loop_tmp, loop_result)
+            dynamic_loop(loop_dict, cur_loop+1, loop_tmp, loop_result)
         loop_tmp.pop()
     return loop_result
 
@@ -231,17 +185,27 @@ def get_loop_vars(rule):
                 continue
     # remove redundant vars, and keep the order
     ans_vars = list(set(loop_vars))
-    ans_vars.sort(key = loop_vars.index)
+    ans_vars.sort(key=loop_vars.index)
     return ans_vars
 
 
-def tiling_loop_with_rule(loop_list, rule):
-    loop_vars = get_loop_vars(rule)
-    loop_result = dynamic_loop(loop_list, 0, [], [])
-    print("loop_vars: %s" % loop_vars)
-    print("loop_result: %s" % loop_result)
-    # if rule is add to loop_list
+def tiling_loop_with_rules(loop_dict, rule_dict):
 
+    loop_result = dynamic_loop(loop_dict, 0, [], [])
+    for loop_var, loop_range in loop_dict.items():
+        print("%-6s=>%s" % (loop_var, loop_range))
+    print("\n")
+    for rule_id, rule in rule_dict.items():
+        print("%-6s=>%s" % (rule_id, rule))
+    print("\n")
+    for one_loop_ans in loop_result:
+        for idx in range(len(one_loop_ans)):
+            register_var(list(loop_dict.keys())[idx], one_loop_ans[idx])
+        ret = True
+        for rule_id, rule in rule_dict.items():
+            ret = ret and RuleParser(rule).evaluate()
+        if ret:
+            print("%s" % (one_loop_ans))
 
 
 
@@ -267,18 +231,17 @@ def test_rule_with_str_desc(rule_dict):
                     print("Ho = %s, Wo = %s, Xo = %s, ret = %s" % (x, y, z, ret))
 
 
-def test_dynamic_loop_with_rule(rule_dict):
-    rule = rule_dict['rule_0']
-    loop_list = [
-        [1,2,3,4,5],
-        [1,2,3,4,5]
-    ]
-    tiling_loop_with_rule(loop_list, rule)
+def test_dynamic_loop_with_rules(rule_dict):
+    loop_dict = OrderedDict()
+    loop_dict['Ho'] = [1,2,3,4,5]
+    loop_dict['Wo'] = [1,2,3,4,5]
+    loop_dict['Xo'] = [1,2,3,4,5]
+    tiling_loop_with_rules(loop_dict, rule_dict)
 
 
 if __name__ == "__main__":
-    with open("rules.json", 'r') as json_fp:
+    with open("rule_tiling.json", 'r') as json_fp:
         rule_dict = json.load(json_fp)
 
     # test_rule_with_str_desc(rule_dict)
-    test_dynamic_loop_with_rule(rule_dict)
+    test_dynamic_loop_with_rules(rule_dict)
